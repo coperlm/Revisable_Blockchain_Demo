@@ -1,6 +1,7 @@
 import hashlib
 import random
 import os
+import uuid
 
 class ChameleonHash:
     def __init__(self):
@@ -8,6 +9,14 @@ class ChameleonHash:
         self.private_key = self._generate_random_key()
         self.public_key = self._derive_public_key(self.private_key)
         self.trapdoor = None
+        # 存储所有已生成的密钥对
+        self.key_pairs = {}
+        # 将默认密钥添加到密钥对中，并赋予名称
+        self.key_pairs["default"] = {
+            "private_key": str(self.private_key),
+            "public_key": str(self.public_key),
+            "description": "默认密钥对"
+        }
     
     def _generate_random_key(self, bits=256):
         """生成随机的数字密钥"""
@@ -27,6 +36,38 @@ class ChameleonHash:
         """导出公钥为字符串格式"""
         return str(self.public_key)
     
+    def generate_key_pair(self, description=""):
+        """生成新的密钥对并返回ID"""
+        private_key = self._generate_random_key()
+        public_key = self._derive_public_key(private_key)
+        
+        # 生成唯一ID
+        key_id = str(uuid.uuid4())[:8]
+        
+        # 存储密钥对
+        self.key_pairs[key_id] = {
+            "private_key": str(private_key),
+            "public_key": str(public_key),
+            "description": description
+        }
+        
+        return {
+            "id": key_id,
+            "private_key": str(private_key),
+            "public_key": str(public_key),
+            "description": description
+        }
+    
+    def get_key_pairs(self):
+        """获取所有密钥对信息（不包含私钥细节）"""
+        result = {}
+        for key_id, key_data in self.key_pairs.items():
+            result[key_id] = {
+                "public_key": key_data["public_key"],
+                "description": key_data["description"]
+            }
+        return result
+    
     def verify_key_pair(self, private_key_str, expected_public_key_str=None):
         """验证私钥是否有效，以及其是否与预期的公钥匹配"""
         try:
@@ -41,12 +82,27 @@ class ChameleonHash:
                 expected_public_key = int(expected_public_key_str)
                 if derived_public_key != expected_public_key:
                     return False
+            
+            # 检查私钥是否与任何已知的密钥对匹配
+            for key_id, key_data in self.key_pairs.items():
+                if key_data["private_key"] == private_key_str:
+                    return True, key_id
                     
             # 检查私钥是否与当前实例的私钥匹配
-            return derived_public_key == self.public_key
+            if derived_public_key == self.public_key:
+                return True, "default"
+                
+            return False, None
             
         except (ValueError, TypeError):
-            return False
+            return False, None
+    
+    def identify_key_owner(self, private_key_str):
+        """识别私钥所属的密钥对"""
+        result, key_id = self.verify_key_pair(private_key_str)
+        if result:
+            return key_id
+        return None
     
     def generate_random(self, size=32):
         """生成随机数"""
@@ -91,8 +147,10 @@ class ChameleonHash:
             用于新消息的随机数r'
         """
         # 如果提供了私钥，验证是否有权限
+        key_id = None
         if private_key_str:
-            if not self.verify_key_pair(private_key_str):
+            result, key_id = self.verify_key_pair(private_key_str)
+            if not result:
                 raise PermissionError("私钥验证失败，无权修改区块")
         
         # 计算原始哈希值
@@ -105,7 +163,7 @@ class ChameleonHash:
             new_hash, _ = self.hash(new_message, r_new)
             
             if new_hash == original_hash:
-                return r_new
+                return r_new, key_id
         
         # 如果找不到碰撞，使用陷门（实际实现中会有更高效的算法）
         if self.trapdoor:
@@ -119,6 +177,6 @@ class ChameleonHash:
                 new_message_bytes = new_message
                 
             adjusted_r = (original_r ^ int.from_bytes(hashlib.sha256(new_message_bytes).digest(), 'big')) & ((1 << 256) - 1)
-            return adjusted_r
+            return adjusted_r, key_id
             
         raise Exception("无法找到碰撞")

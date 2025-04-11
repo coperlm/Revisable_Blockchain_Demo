@@ -12,6 +12,8 @@ class Block:
         self.previous_hash = previous_hash
         self.random_value = random_value
         self.hash, self.random_value = self._calculate_hash()
+        # 添加修改历史记录
+        self.modification_history = []
         
     def _calculate_hash(self):
         """
@@ -32,6 +34,15 @@ class Block:
         # 返回十六进制格式的哈希值和随机值
         return hash_value.hex(), random_value
     
+    def add_modification_record(self, timestamp, key_id, description=""):
+        """添加修改记录"""
+        modification = {
+            'timestamp': timestamp,
+            'key_id': key_id,
+            'description': description
+        }
+        self.modification_history.append(modification)
+    
     def to_dict(self):
         """将区块转换为字典格式"""
         return {
@@ -40,7 +51,8 @@ class Block:
             'data': self.data,
             'previous_hash': self.previous_hash,
             'hash': self.hash,
-            'random_value': self.random_value
+            'random_value': self.random_value,
+            'modification_history': self.modification_history
         }
 
 class Blockchain:
@@ -54,12 +66,24 @@ class Blockchain:
         self.create_genesis_block()
     
     def get_public_key(self):
-        """获取区块链的公钥"""
+        """获取区块链的默认公钥"""
         return self.public_key
     
     def get_private_key(self):
-        """获取区块链的私钥 - 注意：在实际应用中应该限制访问"""
+        """获取区块链的默认私钥 - 注意：在实际应用中应该限制访问"""
         return self.private_key
+    
+    def generate_key_pair(self, description=""):
+        """生成新的密钥对"""
+        return self.chameleon_hash.generate_key_pair(description)
+    
+    def get_all_key_pairs(self):
+        """获取所有密钥对信息（不含私钥）"""
+        return self.chameleon_hash.get_key_pairs()
+    
+    def identify_key_owner(self, private_key_str):
+        """识别私钥持有者"""
+        return self.chameleon_hash.identify_key_owner(private_key_str)
     
     def create_genesis_block(self):
         """创建创世区块（第一个区块）"""
@@ -156,7 +180,7 @@ class Blockchain:
         
         # 找到碰撞，使哈希值保持不变
         try:
-            new_random = self.chameleon_hash.find_collision(
+            new_random, key_id = self.chameleon_hash.find_collision(
                 original_block_string, 
                 new_block_string, 
                 original_random,
@@ -173,6 +197,14 @@ class Blockchain:
                 
                 # 由于哈希值发生变化，需要更新所有后续区块的previous_hash
                 self._update_subsequent_blocks(block_index)
+            
+            # 添加修改记录
+            modifier_id = key_id if key_id else "unknown"
+            target_block.add_modification_record(
+                timestamp=datetime.now().isoformat(),
+                key_id=modifier_id,
+                description="区块数据已被修改"
+            )
             
             return True
         except PermissionError as e:

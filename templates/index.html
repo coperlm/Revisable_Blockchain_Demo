@@ -161,22 +161,38 @@
                 <i class="fas fa-key mr-2"></i>
                 密钥信息
             </h2>
-            <div class="mb-4">
+            <div class="mb-4 flex space-x-3">
                 <button id="getKeysButton" class="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
+                    <i class="fas fa-key mr-2"></i>
+                    获取默认密钥
+                </button>
+                <button id="generateKeyPairButton" class="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
                     <i class="fas fa-key-skeleton mr-2"></i>
-                    获取密钥
+                    生成新密钥
                 </button>
                 <span id="keysStatus" class="ml-2 text-gray-600 dark:text-gray-300"></span>
             </div>
             <div id="keysContainer" class="hidden animate__animated animate__fadeIn">
-                <div class="mb-4">
-                    <label class="block text-gray-700 dark:text-gray-300 font-bold mb-2 flex items-center">
+                <div class="mb-1">
+                    <label class="block text-gray-700 dark:text-gray-300 font-bold mb-1 flex items-center">
+                        <i class="fas fa-fingerprint mr-2"></i>密钥 ID：
+                    </label>
+                    <div id="keyId" class="bg-indigo-100 dark:bg-indigo-900 p-2 rounded-lg key-text border border-indigo-200 dark:border-indigo-800 font-bold text-indigo-800 dark:text-indigo-300"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-gray-700 dark:text-gray-300 font-bold mb-1 flex items-center">
+                        <i class="fas fa-tag mr-2"></i>描述：
+                    </label>
+                    <div id="keyDescription" class="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg key-text border border-gray-200 dark:border-gray-600"></div>
+                </div>
+                <div class="mb-3">
+                    <label class="block text-gray-700 dark:text-gray-300 font-bold mb-1 flex items-center">
                         <i class="fas fa-lock-open mr-2"></i>公钥：
                     </label>
                     <div id="publicKey" class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg key-text border border-gray-200 dark:border-gray-600"></div>
                 </div>
                 <div class="mb-2">
-                    <label class="block text-gray-700 dark:text-gray-300 font-bold mb-2 flex items-center">
+                    <label class="block text-gray-700 dark:text-gray-300 font-bold mb-1 flex items-center">
                         <i class="fas fa-lock mr-2"></i>私钥：
                     </label>
                     <div id="privateKey" class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg key-text border border-gray-200 dark:border-gray-600"></div>
@@ -185,6 +201,38 @@
                     <i class="fas fa-triangle-exclamation mr-2"></i>
                     警告：在实际应用中，私钥应妥善保管，不应公开显示！
                 </p>
+            </div>
+            
+            <!-- 密钥列表 -->
+            <div id="keyPairsContainer" class="mt-6 animate__animated animate__fadeIn">
+                <h3 class="text-lg font-semibold mb-3 text-blue-600 dark:text-blue-400 flex items-center">
+                    <i class="fas fa-key mr-2"></i>可用密钥列表
+                </h3>
+                <button id="refreshKeysButton" class="mb-3 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium py-1 px-3 rounded text-sm transition-colors duration-300 flex items-center">
+                    <i class="fas fa-sync-alt mr-1"></i>
+                    刷新列表
+                </button>
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+                    <table class="min-w-full">
+                        <thead class="bg-gray-100 dark:bg-gray-700">
+                            <tr>
+                                <th class="py-2 px-3 border-b dark:border-gray-600 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">密钥 ID</th>
+                                <th class="py-2 px-3 border-b dark:border-gray-600 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">描述</th>
+                                <th class="py-2 px-3 border-b dark:border-gray-600 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keyPairsList">
+                            <tr>
+                                <td colspan="3" class="py-4 text-center text-gray-500 dark:text-gray-400">
+                                    <div class="flex flex-col items-center">
+                                        <div class="loading"></div>
+                                        <span class="mt-2">加载密钥列表中...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -390,11 +438,18 @@
                     dataPreview = String(block.data).slice(0, 20) + 
                                  (String(block.data).length > 20 ? '...' : '');
                 }
+
+                // 添加修改者信息（如果有）
+                let lastModifierInfo = '';
+                if (block.modification_history && block.modification_history.length > 0) {
+                    const lastModification = block.modification_history[block.modification_history.length - 1];
+                    lastModifierInfo = `<div class="mt-1 text-xs bg-blue-600 px-1 py-0.5 rounded">修改者: ${lastModification.key_id}</div>`;
+                }
                 
                 html += `
                     ${arrowHtml}
                     <div class="block-node flex-shrink-0 animate__animated animate__fadeIn">
-                        <div class="block-card bg-gradient-to-r ${blockColor} text-white rounded-lg shadow-lg p-3 w-36 relative overflow-hidden">
+                        <div class="block-card bg-gradient-to-r ${blockColor} text-white rounded-lg shadow-lg p-3 w-40 relative overflow-hidden">
                             <div class="absolute right-1 top-1 opacity-50">
                                 <i class="fas fa-cube"></i>
                             </div>
@@ -403,6 +458,7 @@
                                 <div class="truncate">${dataPreview}</div>
                                 <div class="mt-1">哈希:</div>
                                 <div class="truncate font-mono text-xs">${block.hash.slice(0, 10)}...</div>
+                                ${lastModifierInfo}
                             </div>
                         </div>
                     </div>
@@ -428,7 +484,32 @@
                 return;
             }
 
-            tbody.innerHTML = chain.map((block, index) => `
+            tbody.innerHTML = chain.map((block, index) => {
+                // 处理修改历史记录
+                let modificationHistoryHtml = '';
+                if (block.modification_history && block.modification_history.length > 0) {
+                    const lastMod = block.modification_history[block.modification_history.length - 1];
+                    modificationHistoryHtml = `
+                        <div class="mt-2 text-xs">
+                            <span class="font-semibold text-indigo-600 dark:text-indigo-400">最后修改者:</span>
+                            <span class="bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded">${lastMod.key_id}</span>
+                            <span class="text-gray-600 dark:text-gray-400 ml-1">${new Date(lastMod.timestamp).toLocaleString()}</span>
+                        </div>
+                    `;
+                    
+                    if (block.modification_history.length > 1) {
+                        modificationHistoryHtml += `
+                            <div class="mt-1">
+                                <button class="text-xs text-blue-600 dark:text-blue-400 hover:underline" 
+                                    onclick="showBlockHistory(${block.index})">
+                                    查看完整历史 (${block.modification_history.length}次修改)
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+
+                return `
                 <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : ''}">
                     <td class="py-3 px-4 border-b dark:border-gray-700">
                         <div class="font-bold ${index === 0 ? 'text-green-600 dark:text-green-400' : ''}">${block.index}</div>
@@ -438,6 +519,7 @@
                     </td>
                     <td class="py-3 px-4 border-b dark:border-gray-700">
                         <pre class="whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 p-2 rounded-md text-sm overflow-auto max-h-32">${formatBlockData(block.data)}</pre>
+                        ${modificationHistoryHtml}
                     </td>
                     <td class="py-3 px-4 border-b dark:border-gray-700">
                         <div class="font-mono text-xs bg-gray-50 dark:bg-gray-700 p-2 rounded-md overflow-auto max-w-xs">${block.previous_hash || '无'}</div>
@@ -449,9 +531,70 @@
                         <div class="font-mono text-xs">${block.random_value}</div>
                     </td>
                 </tr>
-            `).join('');
+            `}).join('');
         }
 
+        // 显示区块历史记录
+        async function showBlockHistory(blockIndex) {
+            try {
+                const response = await fetch(`${API_URL}/block-history/${blockIndex}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    let historyHtml = `
+                        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="historyModal">
+                            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">区块 #${blockIndex} 修改历史</h3>
+                                    <button class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white" onclick="document.getElementById('historyModal').remove()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="space-y-4">
+                    `;
+                    
+                    if (data.modification_history && data.modification_history.length > 0) {
+                        data.modification_history.forEach((record, idx) => {
+                            const date = new Date(record.timestamp).toLocaleString();
+                            historyHtml += `
+                                <div class="border-l-4 border-blue-500 pl-4 py-2 ${idx % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700' : ''} rounded">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <span class="font-semibold text-gray-700 dark:text-gray-300">修改者 ID: </span>
+                                            <span class="bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded">${record.key_id}</span>
+                                        </div>
+                                        <span class="text-sm text-gray-500 dark:text-gray-400">${date}</span>
+                                    </div>
+                                    <div class="mt-1 text-sm text-gray-600 dark:text-gray-300">${record.description}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        historyHtml += `<p class="text-center text-gray-500 dark:text-gray-400">没有修改历史记录</p>`;
+                    }
+                    
+                    historyHtml += `
+                                </div>
+                                <div class="mt-6 flex justify-end">
+                                    <button class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold py-2 px-4 rounded" onclick="document.getElementById('historyModal').remove()">
+                                        关闭
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 添加弹窗到页面
+                    const modalContainer = document.createElement('div');
+                    modalContainer.innerHTML = historyHtml;
+                    document.body.appendChild(modalContainer.firstChild);
+                }
+            } catch (error) {
+                console.error('Error fetching block history:', error);
+                alert('获取区块历史失败');
+            }
+        }
+        
         // 添加新区块
         async function mineBlock() {
             const dataField = document.getElementById('blockData');
@@ -555,7 +698,7 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    statusField.innerHTML = '<i class="fas fa-check-circle mr-1"></i> 成功修改区块!';
+                    statusField.innerHTML = `<i class="fas fa-check-circle mr-1"></i> 成功修改区块! 修改者ID: <span class="font-bold">${result.modified_by || 'unknown'}</span>`;
                     statusField.className = 'ml-2 text-green-600 dark:text-green-400 animate__animated animate__fadeIn';
                     loadBlockchain();
                 } else {
@@ -574,6 +717,8 @@
         async function getKeys() {
             const statusField = document.getElementById('keysStatus');
             const keysContainer = document.getElementById('keysContainer');
+            const keyIdField = document.getElementById('keyId');
+            const descriptionField = document.getElementById('keyDescription');
             const publicKeyField = document.getElementById('publicKey');
             const privateKeyField = document.getElementById('privateKey');
             
@@ -585,15 +730,18 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    statusField.innerHTML = '<i class="fas fa-check-circle mr-1"></i> 成功获取密钥!';
+                    statusField.innerHTML = '<i class="fas fa-check-circle mr-1"></i> 成功获取默认密钥!';
                     statusField.className = 'ml-2 text-green-600 dark:text-green-400';
                     
-                    // 显示密钥，确保格式不变
+                    // 显示密钥信息
                     keysContainer.classList.remove('hidden');
+                    keyIdField.textContent = 'default';
+                    descriptionField.textContent = '默认密钥对';
                     publicKeyField.textContent = result.public_key;
                     privateKeyField.textContent = result.private_key;
                     
-                    // 移除自动填充私钥的功能
+                    // 刷新密钥列表
+                    loadKeyPairs();
                 } else {
                     statusField.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ${result.message || '获取密钥失败'}`;
                     statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
@@ -602,6 +750,149 @@
                 console.error('Error getting keys:', error);
                 statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 获取密钥失败';
                 statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
+            }
+        }
+        
+        // 生成新密钥对
+        async function generateKeyPair() {
+            const statusField = document.getElementById('keysStatus');
+            const keysContainer = document.getElementById('keysContainer');
+            const keyIdField = document.getElementById('keyId');
+            const descriptionField = document.getElementById('keyDescription');
+            const publicKeyField = document.getElementById('publicKey');
+            const privateKeyField = document.getElementById('privateKey');
+            
+            try {
+                statusField.innerHTML = '<span class="loading"></span> 生成中...';
+                statusField.className = 'ml-2 text-gray-600 dark:text-gray-400';
+                
+                // 生成描述信息，使用时间戳
+                const description = `生成于 ${new Date().toLocaleString()}`;
+                
+                const response = await fetch(`${API_URL}/generate-key-pair`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        description: description
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    statusField.innerHTML = '<i class="fas fa-check-circle mr-1"></i> 成功生成新密钥!';
+                    statusField.className = 'ml-2 text-green-600 dark:text-green-400';
+                    
+                    // 显示新密钥信息
+                    keysContainer.classList.remove('hidden');
+                    keyIdField.textContent = result.key_pair.id;
+                    descriptionField.textContent = result.key_pair.description;
+                    publicKeyField.textContent = result.key_pair.public_key;
+                    privateKeyField.textContent = result.key_pair.private_key;
+                    
+                    // 自动复制私钥到修改区块的私钥输入框
+                    document.getElementById('privateKeyInput').value = result.key_pair.private_key;
+                    
+                    // 刷新密钥列表
+                    loadKeyPairs();
+                } else {
+                    statusField.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ${result.message || '生成密钥失败'}`;
+                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
+                }
+            } catch (error) {
+                console.error('Error generating key pair:', error);
+                statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 生成密钥失败';
+                statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
+            }
+        }
+        
+        // 加载密钥对列表
+        async function loadKeyPairs() {
+            const keyPairsContainer = document.getElementById('keyPairsList');
+            
+            try {
+                const response = await fetch(`${API_URL}/key-pairs`);
+                const data = await response.json();
+                
+                if (response.ok && data.key_pairs) {
+                    if (Object.keys(data.key_pairs).length === 0) {
+                        keyPairsContainer.innerHTML = `
+                            <tr>
+                                <td colspan="3" class="py-4 text-center text-gray-500 dark:text-gray-400">
+                                    <div>暂无密钥对数据</div>
+                                </td>
+                            </tr>
+                        `;
+                        return;
+                    }
+                    
+                    let html = '';
+                    for (const [id, keyPair] of Object.entries(data.key_pairs)) {
+                        html += `
+                            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <td class="py-2 px-3 border-b dark:border-gray-700">
+                                    <div class="font-mono bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 px-2 py-0.5 rounded">${id}</div>
+                                </td>
+                                <td class="py-2 px-3 border-b dark:border-gray-700">${keyPair.description}</td>
+                                <td class="py-2 px-3 border-b dark:border-gray-700">
+                                    <button class="text-xs bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded"
+                                        onclick="useKeyForModification('${id}')">
+                                        用于修改
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                    keyPairsContainer.innerHTML = html;
+                } else {
+                    keyPairsContainer.innerHTML = `
+                        <tr>
+                            <td colspan="3" class="py-4 text-center text-red-500 dark:text-red-400">
+                                <div>获取密钥列表失败</div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading key pairs:', error);
+                keyPairsContainer.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="py-4 text-center text-red-500 dark:text-red-400">
+                            <div>获取密钥列表失败: ${error.message}</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // 使用选定的密钥ID获取私钥并填充到修改表单
+        async function useKeyForModification(keyId) {
+            try {
+                // 获取特定ID的密钥信息
+                const response = await fetch(`${API_URL}/get-key-by-id`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: keyId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // 自动填充私钥到修改区块的私钥输入框
+                    document.getElementById('privateKeyInput').value = result.private_key;
+                    alert(`已填充密钥ID: ${keyId} 的私钥到修改表单`);
+                } else {
+                    alert(`获取密钥失败: ${result.message}`);
+                }
+            } catch (error) {
+                console.error('Error using key for modification:', error);
+                alert('获取密钥失败');
             }
         }
 
@@ -642,9 +933,14 @@
         document.getElementById('validateButton').addEventListener('click', validateBlockchain);
         document.getElementById('refreshButton').addEventListener('click', loadBlockchain);
         document.getElementById('getKeysButton').addEventListener('click', getKeys);
+        document.getElementById('generateKeyPairButton').addEventListener('click', generateKeyPair);
+        document.getElementById('refreshKeysButton').addEventListener('click', loadKeyPairs);
 
-        // 页面加载时获取区块链数据
-        document.addEventListener('DOMContentLoaded', loadBlockchain);
+        // 页面加载时获取区块链数据和密钥列表
+        document.addEventListener('DOMContentLoaded', function() {
+            loadBlockchain();
+            loadKeyPairs();
+        });
     </script>
 </body>
 </html>
