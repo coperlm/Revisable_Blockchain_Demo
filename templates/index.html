@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基于变色龙哈希的可修改区块链</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .key-text {
+            font-family: monospace;
+            font-size: 0.9rem;
+            overflow-wrap: break-word;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto p-4">
+        <header class="bg-blue-600 text-white p-4 mb-6 rounded-lg shadow-lg">
+            <h1 class="text-3xl font-bold">基于变色龙哈希的可修改区块链</h1>
+            <p class="text-sm mt-2">实现了使用变色龙哈希技术的可修改区块链系统，需要私钥才能修改区块</p>
+        </header>
+
+        <!-- 密钥信息区域 -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-blue-600">密钥信息</h2>
+            <div class="mb-4">
+                <button id="getKeysButton" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
+                    获取密钥
+                </button>
+                <span id="keysStatus" class="ml-2 text-gray-600"></span>
+            </div>
+            <div id="keysContainer" class="hidden">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-bold mb-2">公钥：</label>
+                    <div id="publicKey" class="bg-gray-100 p-3 rounded key-text"></div>
+                </div>
+                <div class="mb-2">
+                    <label class="block text-gray-700 font-bold mb-2">私钥：</label>
+                    <div id="privateKey" class="bg-gray-100 p-3 rounded key-text"></div>
+                </div>
+                <p class="text-red-500 text-sm">警告：在实际应用中，私钥应妥善保管，不应公开显示！</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 添加新区块 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 text-blue-600">添加新区块</h2>
+                <div class="mb-4">
+                    <label for="blockData" class="block text-gray-700 mb-2">区块数据 (JSON):</label>
+                    <textarea id="blockData" rows="5" class="w-full border rounded p-2" placeholder='{"key": "value"}'></textarea>
+                </div>
+                <button id="mineButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    添加区块
+                </button>
+                <span id="mineStatus" class="ml-2 text-gray-600"></span>
+            </div>
+
+            <!-- 修改区块 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 text-blue-600">修改区块（需要私钥）</h2>
+                <div class="mb-4">
+                    <label for="blockIndex" class="block text-gray-700 mb-2">区块索引:</label>
+                    <input type="number" id="blockIndex" min="0" class="w-full border rounded p-2" placeholder="0">
+                </div>
+                <div class="mb-4">
+                    <label for="newData" class="block text-gray-700 mb-2">新数据 (JSON):</label>
+                    <textarea id="newData" rows="5" class="w-full border rounded p-2" placeholder='{"key": "new value"}'></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="privateKeyInput" class="block text-gray-700 mb-2">私钥 (用于验证权限):</label>
+                    <input type="text" id="privateKeyInput" class="w-full border rounded p-2" placeholder="输入数字私钥...">
+                </div>
+                <button id="modifyButton" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+                    修改区块
+                </button>
+                <span id="modifyStatus" class="ml-2 text-gray-600"></span>
+            </div>
+        </div>
+
+        <!-- 区块链状态 -->
+        <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-blue-600">区块链状态</h2>
+                <div>
+                    <button id="validateButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2">
+                        验证区块链
+                    </button>
+                    <button id="refreshButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                        刷新
+                    </button>
+                </div>
+            </div>
+            <div id="validationResult" class="mb-4 p-3 hidden"></div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full bg-white">
+                    <thead class="bg-gray-100">
+                        <tr>
+                            <th class="py-2 px-4 border-b text-left">索引</th>
+                            <th class="py-2 px-4 border-b text-left">时间戳</th>
+                            <th class="py-2 px-4 border-b text-left">数据</th>
+                            <th class="py-2 px-4 border-b text-left">前一个哈希</th>
+                            <th class="py-2 px-4 border-b text-left">哈希值</th>
+                            <th class="py-2 px-4 border-b text-left">随机值</th>
+                        </tr>
+                    </thead>
+                    <tbody id="blockchainBody">
+                        <tr>
+                            <td colspan="6" class="py-4 text-center text-gray-500">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // API URL
+        const API_URL = 'http://localhost:5000';
+
+        // 加载区块链数据
+        async function loadBlockchain() {
+            try {
+                const response = await fetch(`${API_URL}/chain`);
+                const data = await response.json();
+                renderBlockchain(data.chain);
+            } catch (error) {
+                console.error('Error loading blockchain:', error);
+                document.getElementById('blockchainBody').innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-4 text-center text-red-500">
+                            无法加载区块链数据。请确保API服务器正在运行。
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // 渲染区块链数据到表格
+        function renderBlockchain(chain) {
+            const tbody = document.getElementById('blockchainBody');
+            if (chain.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="py-4 text-center text-gray-500">区块链为空</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = chain.map(block => `
+                <tr class="hover:bg-gray-50">
+                    <td class="py-2 px-4 border-b">${block.index}</td>
+                    <td class="py-2 px-4 border-b">${new Date(block.timestamp).toLocaleString()}</td>
+                    <td class="py-2 px-4 border-b">
+                        <pre class="whitespace-pre-wrap">${JSON.stringify(block.data, null, 2)}</pre>
+                    </td>
+                    <td class="py-2 px-4 border-b">
+                        <span class="font-mono text-xs">${block.previous_hash}</span>
+                    </td>
+                    <td class="py-2 px-4 border-b">
+                        <span class="font-mono text-xs">${block.hash}</span>
+                    </td>
+                    <td class="py-2 px-4 border-b">
+                        <span class="font-mono text-xs">${block.random_value}</span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 添加新区块
+        async function mineBlock() {
+            const dataField = document.getElementById('blockData');
+            const statusField = document.getElementById('mineStatus');
+            
+            try {
+                let blockData;
+                try {
+                    blockData = JSON.parse(dataField.value);
+                } catch (e) {
+                    statusField.textContent = '请输入有效的JSON数据';
+                    statusField.className = 'ml-2 text-red-600';
+                    return;
+                }
+
+                statusField.innerHTML = '<span class="loading"></span> 处理中...';
+                statusField.className = 'ml-2 text-gray-600';
+                
+                const response = await fetch(`${API_URL}/mine`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(blockData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    statusField.textContent = '成功添加区块!';
+                    statusField.className = 'ml-2 text-green-600';
+                    dataField.value = '';
+                    loadBlockchain();
+                } else {
+                    statusField.textContent = result.message || '添加区块失败';
+                    statusField.className = 'ml-2 text-red-600';
+                }
+            } catch (error) {
+                console.error('Error mining block:', error);
+                statusField.textContent = '添加区块失败';
+                statusField.className = 'ml-2 text-red-600';
+            }
+        }
+
+        // 修改区块
+        async function modifyBlock() {
+            const indexField = document.getElementById('blockIndex');
+            const dataField = document.getElementById('newData');
+            const privateKeyField = document.getElementById('privateKeyInput');
+            const statusField = document.getElementById('modifyStatus');
+            
+            try {
+                const blockIndex = parseInt(indexField.value);
+                if (isNaN(blockIndex) || blockIndex < 0) {
+                    statusField.textContent = '请输入有效的区块索引';
+                    statusField.className = 'ml-2 text-red-600';
+                    return;
+                }
+                
+                let newData;
+                try {
+                    newData = JSON.parse(dataField.value);
+                } catch (e) {
+                    statusField.textContent = '请输入有效的JSON数据';
+                    statusField.className = 'ml-2 text-red-600';
+                    return;
+                }
+                
+                const privateKey = privateKeyField.value.trim();
+                if (!privateKey) {
+                    statusField.textContent = '请提供有效的私钥';
+                    statusField.className = 'ml-2 text-red-600';
+                    return;
+                }
+
+                statusField.innerHTML = '<span class="loading"></span> 修改中...';
+                statusField.className = 'ml-2 text-gray-600';
+                
+                const response = await fetch(`${API_URL}/modify`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        index: blockIndex,
+                        new_data: newData,
+                        private_key: privateKey
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    statusField.textContent = '成功修改区块!';
+                    statusField.className = 'ml-2 text-green-600';
+                    loadBlockchain();
+                } else {
+                    statusField.textContent = result.message || '修改区块失败';
+                    statusField.className = 'ml-2 text-red-600';
+                    console.error('修改失败:', result);
+                }
+            } catch (error) {
+                console.error('Error modifying block:', error);
+                statusField.textContent = '修改区块失败';
+                statusField.className = 'ml-2 text-red-600';
+            }
+        }
+
+        // 获取密钥
+        async function getKeys() {
+            const statusField = document.getElementById('keysStatus');
+            const keysContainer = document.getElementById('keysContainer');
+            const publicKeyField = document.getElementById('publicKey');
+            const privateKeyField = document.getElementById('privateKey');
+            
+            try {
+                statusField.innerHTML = '<span class="loading"></span> 获取中...';
+                statusField.className = 'ml-2 text-gray-600';
+                
+                const response = await fetch(`${API_URL}/keys`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    statusField.textContent = '成功获取密钥!';
+                    statusField.className = 'ml-2 text-green-600';
+                    
+                    // 显示密钥，确保格式不变
+                    keysContainer.classList.remove('hidden');
+                    publicKeyField.textContent = result.public_key;
+                    privateKeyField.textContent = result.private_key;
+                    
+                    // 自动填充修改区块表单中的私钥，保持完整格式
+                    document.getElementById('privateKeyInput').value = result.private_key;
+                } else {
+                    statusField.textContent = result.message || '获取密钥失败';
+                    statusField.className = 'ml-2 text-red-600';
+                }
+            } catch (error) {
+                console.error('Error getting keys:', error);
+                statusField.textContent = '获取密钥失败';
+                statusField.className = 'ml-2 text-red-600';
+            }
+        }
+
+        // 验证区块链
+        async function validateBlockchain() {
+            const resultDiv = document.getElementById('validationResult');
+            
+            try {
+                resultDiv.innerHTML = '<span class="loading"></span> 验证中...';
+                resultDiv.className = 'mb-4 p-3 bg-gray-100 rounded flex items-center';
+                resultDiv.classList.remove('hidden');
+                
+                const response = await fetch(`${API_URL}/validate`);
+                const result = await response.json();
+                
+                if (response.ok) {
+                    if (result.message.includes('有效')) {
+                        resultDiv.textContent = '✓ ' + result.message;
+                        resultDiv.className = 'mb-4 p-3 bg-green-100 text-green-700 rounded';
+                    } else {
+                        resultDiv.textContent = '✗ ' + result.message;
+                        resultDiv.className = 'mb-4 p-3 bg-red-100 text-red-700 rounded';
+                    }
+                } else {
+                    resultDiv.textContent = '验证失败';
+                    resultDiv.className = 'mb-4 p-3 bg-red-100 text-red-700 rounded';
+                }
+            } catch (error) {
+                console.error('Error validating blockchain:', error);
+                resultDiv.textContent = '验证失败';
+                resultDiv.className = 'mb-4 p-3 bg-red-100 text-red-700 rounded';
+            }
+        }
+
+        // 事件监听器
+        document.getElementById('mineButton').addEventListener('click', mineBlock);
+        document.getElementById('modifyButton').addEventListener('click', modifyBlock);
+        document.getElementById('validateButton').addEventListener('click', validateBlockchain);
+        document.getElementById('refreshButton').addEventListener('click', loadBlockchain);
+        document.getElementById('getKeysButton').addEventListener('click', getKeys);
+
+        // 页面加载时获取区块链数据
+        document.addEventListener('DOMContentLoaded', loadBlockchain);
+    </script>
+</body>
+</html>
