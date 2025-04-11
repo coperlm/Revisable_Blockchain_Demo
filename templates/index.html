@@ -222,38 +222,6 @@
                 </p>
             </div>
             
-            <!-- 新增：生成有限制的密钥表单 -->
-            <div id="generateKeyWithLimitForm" class="hidden mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg border border-indigo-100 dark:border-indigo-800 animate__animated animate__fadeIn">
-                <h3 class="text-lg font-semibold mb-3 text-indigo-700 dark:text-indigo-300 flex items-center">
-                    <i class="fas fa-key mr-2"></i>生成有使用次数限制的新密钥
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="authPrivateKey" class="block text-gray-700 dark:text-gray-300 mb-1">授权私钥 (默认密钥):</label>
-                        <input type="text" id="authPrivateKey" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="输入默认密钥的私钥...">
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">需要使用默认密钥授权才能创建新密钥</p>
-                    </div>
-                    <div>
-                        <label for="usageLimit" class="block text-gray-700 dark:text-gray-300 mb-1">使用次数限制:</label>
-                        <input type="number" id="usageLimit" min="1" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="例如: 5" value="5">
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">新密钥最多可用于修改区块的次数</p>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <label for="keyDescriptionInput" class="block text-gray-700 dark:text-gray-300 mb-1">密钥描述:</label>
-                    <input type="text" id="keyDescriptionInput" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="例如: 临时修改密钥" value="临时修改密钥">
-                </div>
-                <div class="mt-4 flex space-x-3">
-                    <button id="generateLimitedKeyButton" class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
-                        <i class="fas fa-key mr-2"></i>
-                        生成受限密钥
-                    </button>
-                    <button id="cancelGenerateKey" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold py-2 px-4 rounded-lg transition-all duration-300">
-                        取消
-                    </button>
-                </div>
-            </div>
-            
             <!-- 密钥列表 -->
             <div id="keyPairsContainer" class="mt-6 animate__animated animate__fadeIn">
                 <h3 class="text-lg font-semibold mb-3 text-blue-600 dark:text-blue-400 flex items-center">
@@ -403,6 +371,84 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 生成密钥模态框 -->
+    <div id="keyGeneratorModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden animate__animated animate__fadeIn">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full animate__animated animate__zoomIn">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <i class="fas fa-key text-indigo-500 mr-2"></i>
+                    生成新密钥
+                </h3>
+                <button class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white" onclick="closeKeyGeneratorModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label for="modalAuthPrivateKey" class="block text-gray-700 dark:text-gray-300 mb-1">授权私钥 (默认密钥):</label>
+                    <input type="text" id="modalAuthPrivateKey" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="输入默认密钥的私钥...">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">需要使用默认密钥授权才能创建新密钥</p>
+                </div>
+                
+                <div>
+                    <label for="modalUsageLimit" class="block text-gray-700 dark:text-gray-300 mb-1">使用次数限制:</label>
+                    <div class="flex items-center">
+                        <input type="number" id="modalUsageLimit" min="1" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="例如: 5" value="5">
+                        <span class="ml-2 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300 px-2 py-1 rounded-md text-sm font-medium">次</span>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">新密钥最多可用于修改区块的次数</p>
+                </div>
+                
+                <div>
+                    <label for="modalKeyDescriptionInput" class="block text-gray-700 dark:text-gray-300 mb-1">密钥描述:</label>
+                    <input type="text" id="modalKeyDescriptionInput" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white dark:bg-gray-700" placeholder="例如: 临时修改密钥" value="临时修改密钥">
+                </div>
+            </div>
+            
+            <div class="mt-6 flex space-x-3">
+                <button id="modalGenerateLimitedKeyButton" class="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex-grow flex items-center justify-center btn-press">
+                    <i class="fas fa-key mr-2"></i>
+                    生成受限密钥
+                </button>
+                <button onclick="closeKeyGeneratorModal()" class="bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-bold py-2 px-4 rounded-lg transition-all duration-300">
+                    取消
+                </button>
+            </div>
+            
+            <div id="modalKeyStatus" class="mt-4 text-center hidden"></div>
+            
+            <!-- 生成结果展示区 -->
+            <div id="generatedKeyResult" class="mt-5 hidden border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h4 class="text-lg font-semibold text-green-600 dark:text-green-400 mb-3 flex items-center justify-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    密钥生成成功
+                </h4>
+                <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                    <div class="mb-2">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">密钥 ID:</span>
+                        <div id="resultKeyId" class="bg-indigo-100 dark:bg-indigo-900 p-2 rounded text-sm font-mono text-indigo-800 dark:text-indigo-300 mt-1 break-all"></div>
+                    </div>
+                    <div class="mb-2">
+                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">私钥:</span>
+                        <div class="relative">
+                            <div id="resultPrivateKey" class="bg-yellow-50 dark:bg-yellow-900/30 p-2 rounded text-sm font-mono text-yellow-800 dark:text-yellow-300 mt-1 break-all"></div>
+                            <button id="copyPrivateKeyBtn" class="absolute top-2 right-2 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200" onclick="copyToClipboard('resultPrivateKey')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex justify-center mt-4">
+                        <button onclick="useGeneratedKeyForModification()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm flex items-center btn-press">
+                            <i class="fas fa-edit mr-2"></i>
+                            立即用于修改区块
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -796,7 +842,7 @@
                     privateKeyField.textContent = result.private_key;
                     
                     // 为默认密钥自动填充到授权密钥输入框
-                    document.getElementById('authPrivateKey').value = result.private_key;
+                    document.getElementById('modalAuthPrivateKey').value = result.private_key;
                     
                     // 对于默认密钥，不显示使用情况（无限制）
                     keyUsageInfo.classList.add('hidden');
@@ -815,14 +861,14 @@
         }
         
         // 生成新密钥对
-        async function generateKeyPair() {
-            // 显示生成受限密钥的表单
-            document.getElementById('generateKeyWithLimitForm').classList.remove('hidden');
+        function generateKeyPair() {
+            // 显示生成密钥的模态框
+            document.getElementById('keyGeneratorModal').classList.remove('hidden');
         }
         
-        // 取消生成密钥
-        function cancelGenerateKey() {
-            document.getElementById('generateKeyWithLimitForm').classList.add('hidden');
+        // 关闭生成密钥模态框
+        function closeKeyGeneratorModal() {
+            document.getElementById('keyGeneratorModal').classList.add('hidden');
         }
         
         // 生成有使用次数限制的密钥
@@ -836,9 +882,9 @@
             const keyUsageStatus = document.getElementById('keyUsageStatus');
             
             // 获取表单数据
-            const authPrivateKey = document.getElementById('authPrivateKey').value.trim();
-            const usageLimit = parseInt(document.getElementById('usageLimit').value);
-            const description = document.getElementById('keyDescriptionInput').value.trim() || "临时修改密钥";
+            const authPrivateKey = document.getElementById('modalAuthPrivateKey').value.trim();
+            const usageLimit = parseInt(document.getElementById('modalUsageLimit').value);
+            const description = document.getElementById('modalKeyDescriptionInput').value.trim() || "临时修改密钥";
             
             if (!authPrivateKey) {
                 statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 请提供授权私钥';
@@ -875,7 +921,7 @@
                     statusField.className = 'ml-2 text-green-600 dark:text-green-400';
                     
                     // 隐藏生成表单
-                    document.getElementById('generateKeyWithLimitForm').classList.add('hidden');
+                    closeKeyGeneratorModal();
                     
                     // 显示新密钥信息
                     keysContainer.classList.remove('hidden');
@@ -1081,6 +1127,106 @@
             }
         }
 
+        // 复制文本到剪贴板
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                // 显示复制成功提示
+                const btn = document.getElementById('copyPrivateKeyBtn');
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.classList.add('text-green-500', 'dark:text-green-400');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('text-green-500', 'dark:text-green-400');
+                }, 2000);
+            }).catch(err => {
+                console.error('无法复制文本: ', err);
+                alert('复制失败，请手动复制');
+            });
+        }
+
+        // 使用生成的密钥进行区块修改
+        function useGeneratedKeyForModification() {
+            const privateKey = document.getElementById('resultPrivateKey').innerText;
+            document.getElementById('privateKeyInput').value = privateKey;
+            closeKeyGeneratorModal();
+            
+            // 显示提示信息
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg animate__animated animate__fadeIn z-50';
+            toast.innerHTML = `<i class="fas fa-info-circle mr-2"></i>密钥已复制到修改区块表单`;
+            document.body.appendChild(toast);
+            
+            // 3秒后自动消失
+            setTimeout(() => {
+                toast.classList.replace('animate__fadeIn', 'animate__fadeOut');
+                setTimeout(() => toast.remove(), 1000);
+            }, 3000);
+            
+            // 滚动到修改区块部分
+            document.querySelector('.card-gradient:nth-of-type(3)').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 模态框中生成密钥
+        async function modalGenerateKeyPair() {
+            const statusField = document.getElementById('modalKeyStatus');
+            statusField.classList.remove('hidden');
+            
+            // 获取表单数据
+            const authPrivateKey = document.getElementById('modalAuthPrivateKey').value.trim();
+            const usageLimit = parseInt(document.getElementById('modalUsageLimit').value);
+            const description = document.getElementById('modalKeyDescriptionInput').value.trim() || "临时修改密钥";
+            
+            if (!authPrivateKey) {
+                statusField.innerHTML = '<span class="text-red-500 dark:text-red-400"><i class="fas fa-times-circle mr-1"></i> 请提供授权私钥</span>';
+                return;
+            }
+            
+            if (isNaN(usageLimit) || usageLimit <= 0) {
+                statusField.innerHTML = '<span class="text-red-500 dark:text-red-400"><i class="fas fa-times-circle mr-1"></i> 使用次数限制必须为正整数</span>';
+                return;
+            }
+            
+            try {
+                statusField.innerHTML = '<span class="loading mr-2"></span> <span class="text-gray-600 dark:text-gray-400">生成中...</span>';
+                
+                const response = await fetch(`${API_URL}/generate-key-pair-with-limit`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        auth_private_key: authPrivateKey,
+                        usage_limit: usageLimit,
+                        description: description
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // 隐藏状态显示
+                    statusField.classList.add('hidden');
+                    
+                    // 显示生成结果
+                    const resultArea = document.getElementById('generatedKeyResult');
+                    resultArea.classList.remove('hidden');
+                    document.getElementById('resultKeyId').textContent = result.key_pair.id;
+                    document.getElementById('resultPrivateKey').textContent = result.key_pair.private_key;
+                    
+                    // 刷新密钥列表
+                    loadKeyPairs();
+                } else {
+                    statusField.innerHTML = `<span class="text-red-500 dark:text-red-400"><i class="fas fa-times-circle mr-1"></i> ${result.message || '生成密钥失败'}</span>`;
+                }
+            } catch (error) {
+                console.error('Error generating key pair:', error);
+                statusField.innerHTML = '<span class="text-red-500 dark:text-red-400"><i class="fas fa-times-circle mr-1"></i> 生成密钥失败</span>';
+            }
+        }
+
         // 事件监听器
         document.getElementById('mineButton').addEventListener('click', mineBlock);
         document.getElementById('modifyButton').addEventListener('click', modifyBlock);
@@ -1088,8 +1234,7 @@
         document.getElementById('refreshButton').addEventListener('click', loadBlockchain);
         document.getElementById('getKeysButton').addEventListener('click', getKeys);
         document.getElementById('generateKeyPairButton').addEventListener('click', generateKeyPair);
-        document.getElementById('generateLimitedKeyButton').addEventListener('click', generateLimitedKeyPair);
-        document.getElementById('cancelGenerateKey').addEventListener('click', cancelGenerateKey);
+        document.getElementById('modalGenerateLimitedKeyButton').addEventListener('click', generateLimitedKeyPair);
         document.getElementById('refreshKeysButton').addEventListener('click', loadKeyPairs);
 
         // 页面加载时获取区块链数据和密钥列表
