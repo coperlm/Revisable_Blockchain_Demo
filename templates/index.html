@@ -1,11 +1,51 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>基于变色龙哈希的可修改区块链</title>
     <!-- 引入Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入动画库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+    <!-- 引入字体图标 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+        // 配置Tailwind主题
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        secondary: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            300: '#c4b5fd',
+                            400: '#a78bfa',
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                            700: '#6d28d9',
+                            800: '#5b21b6',
+                            900: '#4c1d95',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         .loading {
             display: inline-block;
@@ -25,102 +65,229 @@
             overflow-wrap: break-word;
             word-break: break-all;
         }
+        .block-card {
+            transition: all 0.3s ease;
+        }
+        .block-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .block-chain-visual {
+            position: relative;
+            padding-bottom: 20px;
+        }
+        .block-chain-visual::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #38bdf8, #8b5cf6);
+            z-index: 0;
+        }
+        .block-node {
+            z-index: 1;
+            position: relative;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass-effect {
+            background: rgba(30, 30, 30, 0.7);
+            border: 1px solid rgba(80, 80, 80, 0.3);
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #0ea5e9, #6d28d9);
+        }
+        .dark .hero-gradient {
+            background: linear-gradient(135deg, #075985, #4c1d95);
+        }
+        .card-gradient {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        }
+        .dark .card-gradient {
+            background: linear-gradient(135deg, #0c4a6e, #1e293b);
+        }
     </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen dark:bg-gray-900 transition-colors duration-300">
     <div class="container mx-auto p-4">
-        <header class="bg-blue-600 text-white p-4 mb-6 rounded-lg shadow-lg">
-            <h1 class="text-3xl font-bold">基于变色龙哈希的可修改区块链</h1>
-            <p class="text-sm mt-2">实现了使用变色龙哈希技术的可修改区块链系统，需要私钥才能修改区块</p>
+        <!-- 暗黑模式切换 -->
+        <div class="absolute top-4 right-6 z-10">
+            <button id="themeSwitcher" class="p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 transition-colors duration-300">
+                <i class="fas fa-moon dark:hidden"></i>
+                <i class="fas fa-sun hidden dark:inline"></i>
+            </button>
+        </div>
+
+        <!-- 头部区域 -->
+        <header class="hero-gradient text-white p-6 mb-8 rounded-2xl shadow-lg animate__animated animate__fadeIn overflow-hidden relative">
+            <div class="absolute inset-0 bg-blue-500 opacity-20 dark:bg-blue-800">
+                <div class="absolute inset-0" style="background-image: url('data:image/svg+xml,%3Csvg width=\"100\" height=\"100\" viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\"%3E%3Cpath d=\"M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z\" fill=\"%23ffffff\" fill-opacity=\"0.1\" fill-rule=\"evenodd\"/%3E%3C/svg%3E')"></div>
+            </div>
+            <div class="relative z-10">
+                <div class="flex items-center mb-2">
+                    <i class="fas fa-link-slash text-3xl mr-3"></i>
+                    <h1 class="text-4xl font-bold tracking-tight">基于变色龙哈希的可修改区块链</h1>
+                </div>
+                <p class="text-lg opacity-90 mt-3 max-w-2xl">使用变色龙哈希技术实现的可修改区块链系统，通过私钥授权实现区块内容的安全修改</p>
+                <div class="absolute -bottom-10 -right-10 opacity-10">
+                    <i class="fas fa-cube text-9xl"></i>
+                </div>
+            </div>
         </header>
 
-        <!-- 密钥信息区域 -->
-        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-            <h2 class="text-xl font-semibold mb-4 text-blue-600">密钥信息</h2>
-            <div class="mb-4">
-                <button id="getKeysButton" class="bg-indigo-500 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded">
-                    获取密钥
-                </button>
-                <span id="keysStatus" class="ml-2 text-gray-600"></span>
-            </div>
-            <div id="keysContainer" class="hidden">
-                <div class="mb-4">
-                    <label class="block text-gray-700 font-bold mb-2">公钥：</label>
-                    <div id="publicKey" class="bg-gray-100 p-3 rounded key-text"></div>
-                </div>
-                <div class="mb-2">
-                    <label class="block text-gray-700 font-bold mb-2">私钥：</label>
-                    <div id="privateKey" class="bg-gray-100 p-3 rounded key-text"></div>
-                </div>
-                <p class="text-red-500 text-sm">警告：在实际应用中，私钥应妥善保管，不应公开显示！</p>
+        <!-- 可视化区块链 -->
+        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md mb-8 animate__animated animate__fadeIn animate__delay-1s overflow-hidden relative">
+            <h2 class="text-xl font-semibold mb-6 text-blue-600 dark:text-blue-400 flex items-center">
+                <i class="fas fa-chart-network mr-2"></i>
+                区块链可视化
+            </h2>
+            <div id="blockchainVisual" class="block-chain-visual flex items-center justify-start gap-4 overflow-x-auto py-6 px-2">
+                <div class="text-center text-gray-500 dark:text-gray-400">加载中...</div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- 添加新区块 -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4 text-blue-600">添加新区块</h2>
+        <!-- 密钥信息区域 -->
+        <div class="card-gradient dark:text-white p-6 rounded-2xl shadow-md mb-8 animate__animated animate__fadeIn animate__delay-2s relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 opacity-5 dark:opacity-10">
+                <i class="fas fa-key text-9xl"></i>
+            </div>
+            <h2 class="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                <i class="fas fa-key mr-2"></i>
+                密钥信息
+            </h2>
+            <div class="mb-4">
+                <button id="getKeysButton" class="bg-gradient-to-r from-indigo-500 to-blue-500 hover:from-indigo-600 hover:to-blue-600 text-white font-bold py-2 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
+                    <i class="fas fa-key-skeleton mr-2"></i>
+                    获取密钥
+                </button>
+                <span id="keysStatus" class="ml-2 text-gray-600 dark:text-gray-300"></span>
+            </div>
+            <div id="keysContainer" class="hidden animate__animated animate__fadeIn">
                 <div class="mb-4">
-                    <label for="blockData" class="block text-gray-700 mb-2">区块数据 (JSON):</label>
-                    <textarea id="blockData" rows="5" class="w-full border rounded p-2" placeholder='{"key": "value"}'></textarea>
+                    <label class="block text-gray-700 dark:text-gray-300 font-bold mb-2 flex items-center">
+                        <i class="fas fa-lock-open mr-2"></i>公钥：
+                    </label>
+                    <div id="publicKey" class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg key-text border border-gray-200 dark:border-gray-600"></div>
                 </div>
-                <button id="mineButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                <div class="mb-2">
+                    <label class="block text-gray-700 dark:text-gray-300 font-bold mb-2 flex items-center">
+                        <i class="fas fa-lock mr-2"></i>私钥：
+                    </label>
+                    <div id="privateKey" class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg key-text border border-gray-200 dark:border-gray-600"></div>
+                </div>
+                <p class="text-red-500 dark:text-red-400 text-sm flex items-center mt-3">
+                    <i class="fas fa-triangle-exclamation mr-2"></i>
+                    警告：在实际应用中，私钥应妥善保管，不应公开显示！
+                </p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- 添加新区块 -->
+            <div class="card-gradient dark:text-white p-6 rounded-2xl shadow-md animate__animated animate__fadeInLeft animate__delay-3s relative overflow-hidden">
+                <div class="absolute -bottom-8 -left-8 opacity-5 dark:opacity-10">
+                    <i class="fas fa-cube text-9xl"></i>
+                </div>
+                <h2 class="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                    <i class="fas fa-plus-square mr-2"></i>
+                    添加新区块
+                </h2>
+                <div class="mb-4">
+                    <label for="blockData" class="block text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                        <i class="fas fa-code mr-2"></i>区块数据 (JSON):
+                    </label>
+                    <textarea id="blockData" rows="5" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700" placeholder='{"key": "value"}'></textarea>
+                </div>
+                <button id="mineButton" class="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
+                    <i class="fas fa-cubes mr-2"></i>
                     添加区块
                 </button>
-                <span id="mineStatus" class="ml-2 text-gray-600"></span>
+                <span id="mineStatus" class="ml-2 text-gray-600 dark:text-gray-300"></span>
             </div>
 
             <!-- 修改区块 -->
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-4 text-blue-600">修改区块（需要私钥）</h2>
+            <div class="card-gradient dark:text-white p-6 rounded-2xl shadow-md animate__animated animate__fadeInRight animate__delay-3s relative overflow-hidden">
+                <div class="absolute -top-8 -right-8 opacity-5 dark:opacity-10">
+                    <i class="fas fa-edit text-9xl"></i>
+                </div>
+                <h2 class="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400 flex items-center">
+                    <i class="fas fa-edit mr-2"></i>
+                    修改区块（需要私钥）
+                </h2>
                 <div class="mb-4">
-                    <label for="blockIndex" class="block text-gray-700 mb-2">区块索引:</label>
-                    <input type="number" id="blockIndex" min="0" class="w-full border rounded p-2" placeholder="0">
+                    <label for="blockIndex" class="block text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                        <i class="fas fa-hashtag mr-2"></i>区块索引:
+                    </label>
+                    <input type="number" id="blockIndex" min="0" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700" placeholder="0">
                 </div>
                 <div class="mb-4">
-                    <label for="newData" class="block text-gray-700 mb-2">新数据 (JSON):</label>
-                    <textarea id="newData" rows="5" class="w-full border rounded p-2" placeholder='{"key": "new value"}'></textarea>
+                    <label for="newData" class="block text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                        <i class="fas fa-code mr-2"></i>新数据 (JSON):
+                    </label>
+                    <textarea id="newData" rows="5" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700" placeholder='{"key": "new value"}'></textarea>
                 </div>
                 <div class="mb-4">
-                    <label for="privateKeyInput" class="block text-gray-700 mb-2">私钥 (用于验证权限):</label>
-                    <input type="text" id="privateKeyInput" class="w-full border rounded p-2" placeholder="输入数字私钥...">
+                    <label for="privateKeyInput" class="block text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                        <i class="fas fa-lock mr-2"></i>私钥 (用于验证权限):
+                    </label>
+                    <input type="text" id="privateKeyInput" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700" placeholder="输入数字私钥...">
                 </div>
-                <button id="modifyButton" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded">
+                <button id="modifyButton" class="bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
+                    <i class="fas fa-pen mr-2"></i>
                     修改区块
                 </button>
-                <span id="modifyStatus" class="ml-2 text-gray-600"></span>
+                <span id="modifyStatus" class="ml-2 text-gray-600 dark:text-gray-300"></span>
             </div>
         </div>
 
         <!-- 区块链状态 -->
-        <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-blue-600">区块链状态</h2>
-                <div>
-                    <button id="validateButton" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded mr-2">
+        <div class="mt-8 card-gradient dark:text-white p-6 rounded-2xl shadow-md animate__animated animate__fadeIn animate__delay-4s relative overflow-hidden">
+            <div class="absolute -bottom-10 -right-10 opacity-5 dark:opacity-10">
+                <i class="fas fa-database text-9xl"></i>
+            </div>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-semibold text-blue-600 dark:text-blue-400 flex items-center">
+                    <i class="fas fa-link mr-2"></i>
+                    区块链状态
+                </h2>
+                <div class="space-x-2">
+                    <button id="validateButton" class="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center inline-flex">
+                        <i class="fas fa-check-circle mr-2"></i>
                         验证区块链
                     </button>
-                    <button id="refreshButton" class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    <button id="refreshButton" class="bg-gradient-to-r from-gray-500 to-gray-700 hover:from-gray-600 hover:to-gray-800 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center inline-flex">
+                        <i class="fas fa-sync-alt mr-2"></i>
                         刷新
                     </button>
                 </div>
             </div>
-            <div id="validationResult" class="mb-4 p-3 hidden"></div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full bg-white">
-                    <thead class="bg-gray-100">
+            <div id="validationResult" class="mb-4 p-4 rounded-lg hidden animate__animated animate__fadeIn transition-all duration-300"></div>
+            <div class="overflow-x-auto rounded-lg shadow">
+                <table class="min-w-full bg-white dark:bg-gray-800 border dark:border-gray-700">
+                    <thead class="bg-gray-100 dark:bg-gray-700">
                         <tr>
-                            <th class="py-2 px-4 border-b text-left">索引</th>
-                            <th class="py-2 px-4 border-b text-left">时间戳</th>
-                            <th class="py-2 px-4 border-b text-left">数据</th>
-                            <th class="py-2 px-4 border-b text-left">前一个哈希</th>
-                            <th class="py-2 px-4 border-b text-left">哈希值</th>
-                            <th class="py-2 px-4 border-b text-left">随机值</th>
+                            <th class="py-3 px-4 border-b dark:border-gray-600 text-left text-gray-700 dark:text-gray-300">索引</th>
+                            <th class="py-3 px-4 border-b dark:border-gray-600 text-left text-gray-700 dark:text-gray-300">时间戳</th>
+                            <th class="py-3 px-4 border-b dark:border-gray-600 text-left text-gray-700 dark:text-gray-300">数据</th>
+                            <th class="py-3 px-4 border-b dark:border-gray-600 text-left text-gray-700 dark:text-gray-300">前一个哈希</th>
+                            <th class="py-3 px-4 border-b dark:border-gray-600 text-left text-gray-700 dark:text-gray-300">哈希值</th>
+                            <th class="py-3 px-4 border-b dark:border-gray-600 text-left text-gray-700 dark:text-gray-300">随机值</th>
                         </tr>
                     </thead>
                     <tbody id="blockchainBody">
                         <tr>
-                            <td colspan="6" class="py-4 text-center text-gray-500">Loading...</td>
+                            <td colspan="6" class="py-8 text-center text-gray-500 dark:text-gray-400">
+                                <div class="flex flex-col items-center">
+                                    <div class="loading"></div>
+                                    <span class="mt-2">加载区块链数据中...</span>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -133,22 +300,85 @@
         // API URL
         const API_URL = 'http://localhost:5000';
 
+        // 暗黑模式切换
+        document.getElementById('themeSwitcher').addEventListener('click', function() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        });
+        
+        // 初始化主题
+        if (localStorage.getItem('theme') === 'dark' || 
+            (localStorage.getItem('theme') === null && 
+             window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+
         // 加载区块链数据
         async function loadBlockchain() {
             try {
                 const response = await fetch(`${API_URL}/chain`);
                 const data = await response.json();
                 renderBlockchain(data.chain);
+                renderBlockchainVisual(data.chain);
             } catch (error) {
                 console.error('Error loading blockchain:', error);
                 document.getElementById('blockchainBody').innerHTML = `
                     <tr>
-                        <td colspan="6" class="py-4 text-center text-red-500">
-                            无法加载区块链数据。请确保API服务器正在运行。
+                        <td colspan="6" class="py-8 text-center text-red-500 dark:text-red-400">
+                            <div class="flex flex-col items-center">
+                                <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
+                                <span>无法加载区块链数据。请确保API服务器正在运行。</span>
+                            </div>
                         </td>
                     </tr>
                 `;
+                document.getElementById('blockchainVisual').innerHTML = `
+                    <div class="mx-auto text-center text-red-500 dark:text-red-400">
+                        <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
+                        <div>无法加载区块链数据</div>
+                    </div>
+                `;
             }
+        }
+
+        // 渲染区块链可视化
+        function renderBlockchainVisual(chain) {
+            const container = document.getElementById('blockchainVisual');
+            
+            if (chain.length === 0) {
+                container.innerHTML = `
+                    <div class="mx-auto text-center text-gray-500 dark:text-gray-400">
+                        <i class="fas fa-cube text-3xl mb-2"></i>
+                        <div>区块链为空</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            for (let i = 0; i < chain.length; i++) {
+                const block = chain[i];
+                const blockColor = i === 0 ? 'from-green-500 to-green-700' : 'from-blue-500 to-blue-700';
+                const arrowHtml = i > 0 ? `<div class="flex-shrink-0 w-12 text-center text-blue-500 dark:text-blue-400"><i class="fas fa-long-arrow-alt-right"></i></div>` : '';
+                
+                html += `
+                    ${arrowHtml}
+                    <div class="block-node flex-shrink-0 animate__animated animate__fadeIn">
+                        <div class="block-card bg-gradient-to-r ${blockColor} text-white rounded-lg shadow-lg p-3 w-36 relative overflow-hidden">
+                            <div class="absolute right-1 top-1 opacity-50">
+                                <i class="fas fa-cube"></i>
+                            </div>
+                            <div class="font-bold text-lg mb-1">块 #${block.index}</div>
+                            <div class="text-xs opacity-80">
+                                <div class="truncate">${JSON.stringify(block.data).slice(0, 20)}${JSON.stringify(block.data).length > 20 ? '...' : ''}</div>
+                                <div class="mt-1">哈希:</div>
+                                <div class="truncate font-mono text-xs">${block.hash.slice(0, 10)}...</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
         }
 
         // 渲染区块链数据到表格
@@ -157,27 +387,36 @@
             if (chain.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6" class="py-4 text-center text-gray-500">区块链为空</td>
+                        <td colspan="6" class="py-8 text-center text-gray-500 dark:text-gray-400">
+                            <div class="flex flex-col items-center">
+                                <i class="fas fa-cube text-3xl mb-2"></i>
+                                <span>区块链为空</span>
+                            </div>
+                        </td>
                     </tr>
                 `;
                 return;
             }
 
-            tbody.innerHTML = chain.map(block => `
-                <tr class="hover:bg-gray-50">
-                    <td class="py-2 px-4 border-b">${block.index}</td>
-                    <td class="py-2 px-4 border-b">${new Date(block.timestamp).toLocaleString()}</td>
-                    <td class="py-2 px-4 border-b">
-                        <pre class="whitespace-pre-wrap">${JSON.stringify(block.data, null, 2)}</pre>
+            tbody.innerHTML = chain.map((block, index) => `
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150 ${index % 2 === 0 ? 'bg-gray-50 dark:bg-gray-800' : ''}">
+                    <td class="py-3 px-4 border-b dark:border-gray-700">
+                        <div class="font-bold ${index === 0 ? 'text-green-600 dark:text-green-400' : ''}">${block.index}</div>
                     </td>
-                    <td class="py-2 px-4 border-b">
-                        <span class="font-mono text-xs">${block.previous_hash}</span>
+                    <td class="py-3 px-4 border-b dark:border-gray-700 whitespace-nowrap">
+                        ${new Date(block.timestamp).toLocaleString()}
                     </td>
-                    <td class="py-2 px-4 border-b">
-                        <span class="font-mono text-xs">${block.hash}</span>
+                    <td class="py-3 px-4 border-b dark:border-gray-700">
+                        <pre class="whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 p-2 rounded-md text-sm overflow-auto max-h-32">${JSON.stringify(block.data, null, 2)}</pre>
                     </td>
-                    <td class="py-2 px-4 border-b">
-                        <span class="font-mono text-xs">${block.random_value}</span>
+                    <td class="py-3 px-4 border-b dark:border-gray-700">
+                        <div class="font-mono text-xs bg-gray-50 dark:bg-gray-700 p-2 rounded-md overflow-auto max-w-xs">${block.previous_hash || '无'}</div>
+                    </td>
+                    <td class="py-3 px-4 border-b dark:border-gray-700">
+                        <div class="font-mono text-xs bg-gray-50 dark:bg-gray-700 p-2 rounded-md overflow-auto max-w-xs">${block.hash}</div>
+                    </td>
+                    <td class="py-3 px-4 border-b dark:border-gray-700">
+                        <div class="font-mono text-xs">${block.random_value}</div>
                     </td>
                 </tr>
             `).join('');
@@ -193,13 +432,13 @@
                 try {
                     blockData = JSON.parse(dataField.value);
                 } catch (e) {
-                    statusField.textContent = '请输入有效的JSON数据';
-                    statusField.className = 'ml-2 text-red-600';
+                    statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 请输入有效的JSON数据';
+                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
                     return;
                 }
 
                 statusField.innerHTML = '<span class="loading"></span> 处理中...';
-                statusField.className = 'ml-2 text-gray-600';
+                statusField.className = 'ml-2 text-gray-600 dark:text-gray-400';
                 
                 const response = await fetch(`${API_URL}/mine`, {
                     method: 'POST',
@@ -212,18 +451,18 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    statusField.textContent = '成功添加区块!';
-                    statusField.className = 'ml-2 text-green-600';
+                    statusField.innerHTML = '<i class="fas fa-check-circle mr-1"></i> 成功添加区块!';
+                    statusField.className = 'ml-2 text-green-600 dark:text-green-400 animate__animated animate__fadeIn';
                     dataField.value = '';
                     loadBlockchain();
                 } else {
-                    statusField.textContent = result.message || '添加区块失败';
-                    statusField.className = 'ml-2 text-red-600';
+                    statusField.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ${result.message || '添加区块失败'}`;
+                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
                 }
             } catch (error) {
                 console.error('Error mining block:', error);
-                statusField.textContent = '添加区块失败';
-                statusField.className = 'ml-2 text-red-600';
+                statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 添加区块失败';
+                statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
             }
         }
 
@@ -237,8 +476,8 @@
             try {
                 const blockIndex = parseInt(indexField.value);
                 if (isNaN(blockIndex) || blockIndex < 0) {
-                    statusField.textContent = '请输入有效的区块索引';
-                    statusField.className = 'ml-2 text-red-600';
+                    statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 请输入有效的区块索引';
+                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
                     return;
                 }
                 
@@ -246,20 +485,20 @@
                 try {
                     newData = JSON.parse(dataField.value);
                 } catch (e) {
-                    statusField.textContent = '请输入有效的JSON数据';
-                    statusField.className = 'ml-2 text-red-600';
+                    statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 请输入有效的JSON数据';
+                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
                     return;
                 }
                 
                 const privateKey = privateKeyField.value.trim();
                 if (!privateKey) {
-                    statusField.textContent = '请提供有效的私钥';
-                    statusField.className = 'ml-2 text-red-600';
+                    statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 请提供有效的私钥';
+                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
                     return;
                 }
 
                 statusField.innerHTML = '<span class="loading"></span> 修改中...';
-                statusField.className = 'ml-2 text-gray-600';
+                statusField.className = 'ml-2 text-gray-600 dark:text-gray-400';
                 
                 const response = await fetch(`${API_URL}/modify`, {
                     method: 'POST',
@@ -276,18 +515,18 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    statusField.textContent = '成功修改区块!';
-                    statusField.className = 'ml-2 text-green-600';
+                    statusField.innerHTML = '<i class="fas fa-check-circle mr-1"></i> 成功修改区块!';
+                    statusField.className = 'ml-2 text-green-600 dark:text-green-400 animate__animated animate__fadeIn';
                     loadBlockchain();
                 } else {
-                    statusField.textContent = result.message || '修改区块失败';
-                    statusField.className = 'ml-2 text-red-600';
+                    statusField.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ${result.message || '修改区块失败'}`;
+                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
                     console.error('修改失败:', result);
                 }
             } catch (error) {
                 console.error('Error modifying block:', error);
-                statusField.textContent = '修改区块失败';
-                statusField.className = 'ml-2 text-red-600';
+                statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 修改区块失败';
+                statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
             }
         }
 
@@ -300,14 +539,14 @@
             
             try {
                 statusField.innerHTML = '<span class="loading"></span> 获取中...';
-                statusField.className = 'ml-2 text-gray-600';
+                statusField.className = 'ml-2 text-gray-600 dark:text-gray-400';
                 
                 const response = await fetch(`${API_URL}/keys`);
                 const result = await response.json();
                 
                 if (response.ok) {
-                    statusField.textContent = '成功获取密钥!';
-                    statusField.className = 'ml-2 text-green-600';
+                    statusField.innerHTML = '<i class="fas fa-check-circle mr-1"></i> 成功获取密钥!';
+                    statusField.className = 'ml-2 text-green-600 dark:text-green-400';
                     
                     // 显示密钥，确保格式不变
                     keysContainer.classList.remove('hidden');
@@ -317,13 +556,13 @@
                     // 自动填充修改区块表单中的私钥，保持完整格式
                     document.getElementById('privateKeyInput').value = result.private_key;
                 } else {
-                    statusField.textContent = result.message || '获取密钥失败';
-                    statusField.className = 'ml-2 text-red-600';
+                    statusField.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ${result.message || '获取密钥失败'}`;
+                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
                 }
             } catch (error) {
                 console.error('Error getting keys:', error);
-                statusField.textContent = '获取密钥失败';
-                statusField.className = 'ml-2 text-red-600';
+                statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 获取密钥失败';
+                statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
             }
         }
 
@@ -333,7 +572,7 @@
             
             try {
                 resultDiv.innerHTML = '<span class="loading"></span> 验证中...';
-                resultDiv.className = 'mb-4 p-3 bg-gray-100 rounded flex items-center';
+                resultDiv.className = 'mb-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center animate__animated animate__fadeIn';
                 resultDiv.classList.remove('hidden');
                 
                 const response = await fetch(`${API_URL}/validate`);
@@ -341,20 +580,20 @@
                 
                 if (response.ok) {
                     if (result.message.includes('有效')) {
-                        resultDiv.textContent = '✓ ' + result.message;
-                        resultDiv.className = 'mb-4 p-3 bg-green-100 text-green-700 rounded';
+                        resultDiv.innerHTML = `<i class="fas fa-check-circle text-xl mr-2"></i> ${result.message}`;
+                        resultDiv.className = 'mb-4 p-4 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg flex items-center animate__animated animate__fadeIn';
                     } else {
-                        resultDiv.textContent = '✗ ' + result.message;
-                        resultDiv.className = 'mb-4 p-3 bg-red-100 text-red-700 rounded';
+                        resultDiv.innerHTML = `<i class="fas fa-times-circle text-xl mr-2"></i> ${result.message}`;
+                        resultDiv.className = 'mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg flex items-center animate__animated animate__fadeIn';
                     }
                 } else {
-                    resultDiv.textContent = '验证失败';
-                    resultDiv.className = 'mb-4 p-3 bg-red-100 text-red-700 rounded';
+                    resultDiv.innerHTML = `<i class="fas fa-times-circle text-xl mr-2"></i> 验证失败`;
+                    resultDiv.className = 'mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg flex items-center animate__animated animate__fadeIn';
                 }
             } catch (error) {
                 console.error('Error validating blockchain:', error);
-                resultDiv.textContent = '验证失败';
-                resultDiv.className = 'mb-4 p-3 bg-red-100 text-red-700 rounded';
+                resultDiv.innerHTML = `<i class="fas fa-times-circle text-xl mr-2"></i> 验证失败`;
+                resultDiv.className = 'mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg flex items-center animate__animated animate__fadeIn';
             }
         }
 
