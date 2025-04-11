@@ -15,6 +15,16 @@ def index():
     """渲染前端页面"""
     return render_template('index.html')
 
+@app.route('/key_management.html', methods=['GET'])
+def key_management():
+    """渲染密钥管理页面"""
+    return render_template('key_management.html')
+
+@app.route('/block_operations.html', methods=['GET'])
+def block_operations():
+    """渲染区块操作页面"""
+    return render_template('block_operations.html')
+
 @app.route('/chain', methods=['GET'])
 def get_chain():
     """获取完整区块链数据"""
