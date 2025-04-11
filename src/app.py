@@ -97,16 +97,36 @@ def get_keys():
 
 @app.route('/generate-key-pair', methods=['POST'])
 def generate_key_pair():
-    """生成新的密钥对"""
-    data = request.get_json() or {}
-    description = data.get('description', '')
-    key_pair = blockchain.generate_key_pair(description)
+    """生成无限制使用次数的密钥对（已弃用）"""
+    return jsonify({
+        'message': '此功能已弃用，请使用 /generate-key-pair-with-limit 端点，提供授权密钥和使用次数限制'
+    }), 400
+
+@app.route('/generate-key-pair-with-limit', methods=['POST'])
+def generate_key_pair_with_limit():
+    """生成新的密钥对并设置使用次数限制"""
+    data = request.get_json()
+    if not data or 'auth_private_key' not in data or 'usage_limit' not in data:
+        return jsonify({'message': '请提供授权私钥和使用次数限制!'}), 400
     
-    response = {
-        'message': '新密钥对已生成',
-        'key_pair': key_pair
-    }
-    return jsonify(response), 201
+    auth_private_key = data.get('auth_private_key')
+    usage_limit = data.get('usage_limit')
+    description = data.get('description', '')
+    
+    try:
+        key_pair = blockchain.generate_key_pair_with_limit(auth_private_key, usage_limit, description)
+        
+        response = {
+            'message': '新密钥对已生成',
+            'key_pair': key_pair
+        }
+        return jsonify(response), 201
+    except PermissionError as e:
+        return jsonify({'message': str(e)}), 403
+    except ValueError as e:
+        return jsonify({'message': str(e)}), 400
+    except Exception as e:
+        return jsonify({'message': f'生成密钥对时发生错误: {str(e)}'}), 500
 
 @app.route('/key-pairs', methods=['GET'])
 def get_all_key_pairs():
@@ -150,7 +170,7 @@ def identify_key_owner():
         }
         return jsonify(response), 200
     else:
-        return jsonify({'message': '无法识别密钥所有者，密钥可能无效'}), 404
+        return jsonify({'message': '无法识别密钥所有者，密钥可能无效或已达到使用限制'}), 404
 
 @app.route('/get-key-by-id', methods=['POST'])
 def get_key_by_id():
@@ -169,14 +189,52 @@ def get_key_by_id():
     
     # 返回密钥信息（包括私钥）
     # 注意：实际生产环境应当考虑安全限制，此处为演示使用
+    key_data = key_pairs[key_id]
     response = {
         'id': key_id,
-        'private_key': key_pairs[key_id]['private_key'],
-        'public_key': key_pairs[key_id]['public_key'],
-        'description': key_pairs[key_id]['description']
+        'private_key': key_data['private_key'],
+        'public_key': key_data['public_key'],
+        'description': key_data['description'],
+        'usage_limit': key_data.get('usage_limit', -1),
+        'usage_count': key_data.get('usage_count', 0),
+        'status': '有效' if key_data.get('usage_limit', -1) == -1 or key_data.get('usage_count', 0) < key_data.get('usage_limit', -1) else '已达到使用限制'
     }
     
     return jsonify(response), 200
+
+@app.route('/key-usage-status', methods=['POST'])
+def get_key_usage_status():
+    """获取密钥使用状态"""
+    data = request.get_json()
+    if not data or 'private_key' not in data:
+        return jsonify({'message': '请提供私钥!'}), 400
+    
+    private_key = data.get('private_key')
+    
+    try:
+        # 尝试验证密钥并获取ID
+        result, key_id = blockchain.chameleon_hash.verify_key_pair(private_key)
+        
+        if not result or not key_id:
+            return jsonify({'message': '无效的密钥'}), 404
+            
+        # 获取密钥数据
+        key_data = blockchain.chameleon_hash.key_pairs[key_id]
+        
+        response = {
+            'key_id': key_id,
+            'description': key_data.get('description', ''),
+            'usage_limit': key_data.get('usage_limit', -1),
+            'usage_count': key_data.get('usage_count', 0),
+            'remaining_uses': -1 if key_data.get('usage_limit', -1) == -1 else key_data.get('usage_limit', 0) - key_data.get('usage_count', 0),
+            'status': '有效' if key_data.get('usage_limit', -1) == -1 or key_data.get('usage_count', 0) < key_data.get('usage_limit', -1) else '已达到使用限制'
+        }
+        
+        return jsonify(response), 200
+    except PermissionError as e:
+        return jsonify({'message': str(e), 'status': '已达到使用限制'}), 403
+    except Exception as e:
+        return jsonify({'message': f'检查密钥状态时发生错误: {str(e)}'}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

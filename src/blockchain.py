@@ -74,8 +74,20 @@ class Blockchain:
         return self.private_key
     
     def generate_key_pair(self, description=""):
-        """生成新的密钥对"""
+        """为保留兼容性的函数，但会引发错误"""
         return self.chameleon_hash.generate_key_pair(description)
+    
+    def generate_key_pair_with_limit(self, auth_private_key, usage_limit, description=""):
+        """
+        生成新的密钥对并设置使用限制
+        params:
+            auth_private_key: 授权生成新密钥的私钥（必须是默认密钥）
+            usage_limit: 新密钥的最大使用次数
+            description: 密钥描述信息
+        returns:
+            新密钥对的信息
+        """
+        return self.chameleon_hash.generate_key_pair_with_limit(auth_private_key, usage_limit, description)
     
     def get_all_key_pairs(self):
         """获取所有密钥对信息（不含私钥）"""
