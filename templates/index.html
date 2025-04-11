@@ -200,9 +200,15 @@
                 </h2>
                 <div class="mb-4">
                     <label for="blockData" class="block text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                        <i class="fas fa-code mr-2"></i>区块数据 (JSON):
+                        <i class="fas fa-code mr-2"></i>区块数据:
                     </label>
-                    <textarea id="blockData" rows="5" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700" placeholder='{"key": "value"}'></textarea>
+                    <textarea id="blockData" rows="5" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700" placeholder="输入任意文本或JSON数据..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="isJsonData" class="mr-2">
+                        <label for="isJsonData" class="text-gray-700 dark:text-gray-300 text-sm">以JSON格式处理数据</label>
+                    </div>
                 </div>
                 <button id="mineButton" class="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 flex items-center">
                     <i class="fas fa-cubes mr-2"></i>
@@ -228,9 +234,15 @@
                 </div>
                 <div class="mb-4">
                     <label for="newData" class="block text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                        <i class="fas fa-code mr-2"></i>新数据 (JSON):
+                        <i class="fas fa-code mr-2"></i>新数据:
                     </label>
-                    <textarea id="newData" rows="5" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700" placeholder='{"key": "new value"}'></textarea>
+                    <textarea id="newData" rows="5" class="w-full border border-gray-300 dark:border-gray-600 rounded-lg p-3 focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-all duration-300 bg-white dark:bg-gray-700" placeholder="输入任意文本或JSON数据..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="isJsonNewData" class="mr-2">
+                        <label for="isJsonNewData" class="text-gray-700 dark:text-gray-300 text-sm">以JSON格式处理数据</label>
+                    </div>
                 </div>
                 <div class="mb-4">
                     <label for="privateKeyInput" class="block text-gray-700 dark:text-gray-300 mb-2 flex items-center">
@@ -341,6 +353,14 @@
             }
         }
 
+        // 格式化区块数据显示
+        function formatBlockData(data) {
+            if (typeof data === 'object' && data !== null) {
+                return JSON.stringify(data, null, 2);
+            }
+            return String(data);
+        }
+
         // 渲染区块链可视化
         function renderBlockchainVisual(chain) {
             const container = document.getElementById('blockchainVisual');
@@ -361,6 +381,16 @@
                 const blockColor = i === 0 ? 'from-green-500 to-green-700' : 'from-blue-500 to-blue-700';
                 const arrowHtml = i > 0 ? `<div class="flex-shrink-0 w-12 text-center text-blue-500 dark:text-blue-400"><i class="fas fa-long-arrow-alt-right"></i></div>` : '';
                 
+                // 准备数据显示，无论是字符串还是对象
+                let dataPreview;
+                if (typeof block.data === 'object') {
+                    dataPreview = JSON.stringify(block.data).slice(0, 20) + 
+                                 (JSON.stringify(block.data).length > 20 ? '...' : '');
+                } else {
+                    dataPreview = String(block.data).slice(0, 20) + 
+                                 (String(block.data).length > 20 ? '...' : '');
+                }
+                
                 html += `
                     ${arrowHtml}
                     <div class="block-node flex-shrink-0 animate__animated animate__fadeIn">
@@ -370,7 +400,7 @@
                             </div>
                             <div class="font-bold text-lg mb-1">块 #${block.index}</div>
                             <div class="text-xs opacity-80">
-                                <div class="truncate">${JSON.stringify(block.data).slice(0, 20)}${JSON.stringify(block.data).length > 20 ? '...' : ''}</div>
+                                <div class="truncate">${dataPreview}</div>
                                 <div class="mt-1">哈希:</div>
                                 <div class="truncate font-mono text-xs">${block.hash.slice(0, 10)}...</div>
                             </div>
@@ -407,7 +437,7 @@
                         ${new Date(block.timestamp).toLocaleString()}
                     </td>
                     <td class="py-3 px-4 border-b dark:border-gray-700">
-                        <pre class="whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 p-2 rounded-md text-sm overflow-auto max-h-32">${JSON.stringify(block.data, null, 2)}</pre>
+                        <pre class="whitespace-pre-wrap bg-gray-50 dark:bg-gray-700 p-2 rounded-md text-sm overflow-auto max-h-32">${formatBlockData(block.data)}</pre>
                     </td>
                     <td class="py-3 px-4 border-b dark:border-gray-700">
                         <div class="font-mono text-xs bg-gray-50 dark:bg-gray-700 p-2 rounded-md overflow-auto max-w-xs">${block.previous_hash || '无'}</div>
@@ -425,16 +455,21 @@
         // 添加新区块
         async function mineBlock() {
             const dataField = document.getElementById('blockData');
+            const isJsonCheckbox = document.getElementById('isJsonData');
             const statusField = document.getElementById('mineStatus');
             
             try {
-                let blockData;
-                try {
-                    blockData = JSON.parse(dataField.value);
-                } catch (e) {
-                    statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 请输入有效的JSON数据';
-                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
-                    return;
+                let blockData = dataField.value;
+                
+                // 如果勾选了JSON格式，尝试解析JSON
+                if (isJsonCheckbox.checked) {
+                    try {
+                        blockData = JSON.parse(blockData);
+                    } catch (e) {
+                        statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> JSON格式无效，请检查';
+                        statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
+                        return;
+                    }
                 }
 
                 statusField.innerHTML = '<span class="loading"></span> 处理中...';
@@ -470,6 +505,7 @@
         async function modifyBlock() {
             const indexField = document.getElementById('blockIndex');
             const dataField = document.getElementById('newData');
+            const isJsonCheckbox = document.getElementById('isJsonNewData');
             const privateKeyField = document.getElementById('privateKeyInput');
             const statusField = document.getElementById('modifyStatus');
             
@@ -481,13 +517,17 @@
                     return;
                 }
                 
-                let newData;
-                try {
-                    newData = JSON.parse(dataField.value);
-                } catch (e) {
-                    statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> 请输入有效的JSON数据';
-                    statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
-                    return;
+                let newData = dataField.value;
+                
+                // 如果勾选了JSON格式，尝试解析JSON
+                if (isJsonCheckbox.checked) {
+                    try {
+                        newData = JSON.parse(newData);
+                    } catch (e) {
+                        statusField.innerHTML = '<i class="fas fa-times-circle mr-1"></i> JSON格式无效，请检查';
+                        statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
+                        return;
+                    }
                 }
                 
                 const privateKey = privateKeyField.value.trim();
@@ -553,8 +593,7 @@
                     publicKeyField.textContent = result.public_key;
                     privateKeyField.textContent = result.private_key;
                     
-                    // 自动填充修改区块表单中的私钥，保持完整格式
-                    document.getElementById('privateKeyInput').value = result.private_key;
+                    // 移除自动填充私钥的功能
                 } else {
                     statusField.innerHTML = `<i class="fas fa-times-circle mr-1"></i> ${result.message || '获取密钥失败'}`;
                     statusField.className = 'ml-2 text-red-600 dark:text-red-400 animate__animated animate__shakeX';
