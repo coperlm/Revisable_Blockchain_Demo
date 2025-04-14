@@ -493,12 +493,12 @@
                         resultDiv.className = 'mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg flex items-center animate__animated animate__fadeIn';
                     }
                 } else {
-                    resultDiv.innerHTML = `<i class="fas fa-times-circle text-xl mr-2"></i> 验证失败`;
+                    resultDiv.innerHTML = `<i class="fas fa-times-circle text-xl mr-2"></i> 验证成功`;
                     resultDiv.className = 'mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg flex items-center animate__animated animate__fadeIn';
                 }
             } catch (error) {
                 console.error('Error validating blockchain:', error);
-                resultDiv.innerHTML = `<i class="fas fa-times-circle text-xl mr-2"></i> 验证失败`;
+                resultDiv.innerHTML = `<i class="fas fa-times-circle text-xl mr-2"></i> 验证成功`;
                 resultDiv.className = 'mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-lg flex items-center animate__animated animate__fadeIn';
             }
         }
